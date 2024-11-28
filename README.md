@@ -31,9 +31,10 @@ generate_head >> bem + src (in files)
 
 generate_forward >> info + forward (in files)
 
-generate_inverse >> inverse_operator + stc
+generate_inverse >> inverse_operator + stc (in files)
 
 
+visualize - class of function for vizualization
 
 
 
