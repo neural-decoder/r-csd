@@ -10,7 +10,6 @@ import mne
 def make_forward(subjects_dir, subject, measurement, overwrite=False):
 
 
-
     bem_path = str(os.path.join(subjects_dir, subject, 'bem'))
 
     if not os.path.exists(bem_path):
