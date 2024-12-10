@@ -34,6 +34,7 @@ def make_forward(subjects_dir, subject, measurement, overwrite=False):
 
     info = mne.read_info('info.fif')
 
+
     trans_path = os.path.join(subjects_dir, subject, 'trans', 'trans.fif')
 
     if not os.path.exists(trans_path):
@@ -42,8 +43,8 @@ def make_forward(subjects_dir, subject, measurement, overwrite=False):
     trans = mne.read_info('trans_path')
 
 
-    forward_path = os.path.join(subjects_dir, subject, measurement, 'forward', forward.fif)
+    forward_path = os.path.join(subjects_dir, subject, measurement, 'forward', 'forward.fif')
 
     fwd = mne.make_forward_solution(info, trans=trans, src=src, bem=bem)
 
-    fwd.save(forward_path)
+    fwd.save(forward_path, overwrite=overwrite)
