@@ -29,18 +29,17 @@ def make_forward(subjects_dir, subject, measurement, overwrite=False):
     info_path = os.path.join(subjects_dir, subject, measurement, 'info', 'info.fif')
 
     if not os.path.exists(info_path):
-
         raise CustomError('There is no info')
-
-    info = mne.read_info('info.fif')
+    else:
+        info = mne.read_info('info.fif')
 
 
     trans_path = os.path.join(subjects_dir, subject, 'trans', 'trans.fif')
 
     if not os.path.exists(trans_path):
         raise CustomError('There is no info')
-
-    trans = mne.read_info('trans_path')
+    else:
+        trans = mne.read_info('trans_path')
 
 
     forward_path = os.path.join(subjects_dir, subject, measurement, 'forward', 'forward.fif')
