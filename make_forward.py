@@ -9,7 +9,6 @@ import mne
 
 def make_forward(subjects_dir, subject, measurement, overwrite=False, n_jobs=None):
 
-
     """
     Create and save a forward solution for MEG/EEG source analysis.
 
@@ -53,7 +52,7 @@ def make_forward(subjects_dir, subject, measurement, overwrite=False, n_jobs=Non
         src = mne.read_source_spaces(os.path.join(subjects_dir, subject, 'src', 'src.fif'))
 
 
-    info_path = os.path.join(subjects_dir, subject, measurement, 'info', 'info.fif')
+    info_path = os.path.join(subjects_dir, subject, measurement_group, 'info', 'info.fif')
 
     if not os.path.exists(info_path):
         raise CustomError('There is no info')
@@ -69,7 +68,7 @@ def make_forward(subjects_dir, subject, measurement, overwrite=False, n_jobs=Non
         trans = mne.read_info('trans_path')
 
 
-    forward_path = os.path.join(subjects_dir, subject, measurement, 'forward', 'forward.fif')
+    forward_path = os.path.join(subjects_dir, subject, measurement_group, 'forward', 'forward.fif')
 
     fwd = mne.make_forward_solution(info=info, trans=trans, src=src, bem=bem, n_jobs=n_jobs)
 
