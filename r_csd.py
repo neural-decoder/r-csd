@@ -5,7 +5,6 @@ import os
 import mne
 
 
-
 class r_csd:
 
     @staticmethod
@@ -191,22 +190,53 @@ class r_csd:
         measurement = measurement_parameters['measurement']
         measurement_group = measurement_parameters['measurement_group']
 
-        raw_path = os.path.join(subjects_dir, subject, 'ave', measurement_group, measurement)
+        raw_path = os.path.join(subjects_dir, subject, measurement_group, measurement)
         info_path = os.path.join(subjects_dir, subject, measurement_group, 'info.fif')
 
         if not os.path.exists(raw_path):
-            raise FileNotFoundError(f"Averaged raw data file not found: {raw_path}")
+            raise FileNotFoundError(f"Raw data file not found: {raw_path}")
 
         raw = mne.io.read_raw_fif(raw_path, preload=True)
         info = mne.io.read_info(info_path)
 
         print(info)
 
-        inverse_operator = mne.minimum_norm.make_inverse_operator(info=info_sim, forward=fwd, noise_cov=noise_cov,
+
+        # Read the forward solution from file
+        forward_path = os.path.join(subjects_dir, subject, measurement_group, 'forward', 'forward.fif')
+       
+        if not os.path.exists(forward_path):
+            raise FileNotFoundError(f"Forward solution file not found: {forward_path}")
+        
+        fwd = mne.read_forward_solution(forward_path)
+
+        
+        # Read the noise covariance matrix from file
+        
+        noise_cov_path = os.path.join(subjects_dir, subject, measurement_group, 'cov', 'noise-cov.fif')
+
+        if not os.path.exists(noise_cov_path):
+            raise FileNotFoundError(f"Noise covariance file not found: {noise_cov_path}")
+
+        noise_cov = mne.read_cov(noise_cov_path)
+        
+
+        inverse_operator = mne.minimum_norm.make_inverse_operator(info=info, forward=fwd, noise_cov=noise_cov,
                                                                   fixed=fixed, depth=depth)
 
         stc = mne.minimum_norm.apply_inverse_raw(raw=raw, inverse_operator=inverse_operator, lambda2=lambda2,
                                                  method=inverse_method, pick_ori=pick_ori, n_jobs=n_jobs)
+
+
+        # Save the inverse operator to a file
+        inverse_operator_path = os.path.join(subjects_dir, subject, 'inverse_operators',
+                                             f"{measurement}-inverse-operator.fif")
+
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(inverse_operator_path), exist_ok=True)
+
+        mne.minimum_norm.write_inverse_operator(inverse_operator_path, inverse_operator, overwrite=overwrite)
+
 
         # Save the stc file
 
