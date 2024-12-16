@@ -3,241 +3,275 @@
 
 import os
 import mne
+from mne.bem import make_watershed_bem
 
 
-class r_csd:
 
-    @staticmethod
 
-    def make_head(subjects_dir, subject, head_parameters, source_parameters, overwrite=False, n_jobs=None):
+def make_bem(subjects_dir, subject, bem_parameters):
 
-        """
-        Generates the necessary BEM (Boundary Element Method) model, surfaces, and source space files
-        for a given subject. Ensures proper setup of the directory structure and writes the results to
-        appropriate files.
+    """
+    Generate a BEM (Boundary Element Model) for a subject using watershed algorithm.
 
-        This function uses the subjects directory and subject ID to create and store BEM surfaces, BEM
-        solutions, and source spaces essential for EEG/MEG data analysis pipelines.
+    This function leverages the MNE library to create a BEM structure using the
+    watershed algorithm. It requires specific parameters provided in the
+    `bem_parameters` dictionary to configure the BEM generation process. The optional
+    `overwrite` parameter dictates whether existing BEM data should be replaced.
 
-        :param subjects_dir: Path to the FreeSurfer subjects directory containing anatomical data.
-                             The directory must exist and contain the subject's folder.
-        :type subjects_dir: str
-        :param subject: Identifier for the subject. This should correspond to the folder name in
-                        the subjects directory.
-        :type subject: str
-        :param head_parameters: Dictionary containing parameters for building the BEM model.
-                                Keys include:
-                                - "ico": Icosahedron subdivision level for the surface mesh.
-                                - "conductivity": Conductivity values for the tissue layers.
-        :type head_parameters: dict
-        :param source_parameters: Dictionary containing parameters for setting up the source space.
-                                  Key:
-                                  - "source spacing": Defines the source spacing
-        :type source_parameters: dict
-        :param overwrite: Whether to overwrite existing files in the subject directory. Defaults to False.
-        :type overwrite: bool, optional
+    :param subjects_dir: Path to the root directory where all MRI data is stored.
+    :param subject: Name of the subject for whom the BEM is to be created.
+    :param bem_parameters: Dictionary containing the necessary parameters for
+        BEM generation, including 'preflood', 'brain_mask', 'volume', 'gcaatlas',
+        'atlas', and 'T1'.
+    :param overwrite: If True, overwrite any pre-existing BEM data. Defaults to False.
+    :return: None
+    """
 
-        :param n_jobs: Number of parallel jobs to use for computations. If None, defaults to the number
-                       of CPUs in the machine.
-        :type n_jobs: int, optional
+    preflood = bem_parameters['preflood']
+    brain_mask = bem_parameters['brain_mask']
+    volume = bem_parameters['volume']
+    gcaatlas = bem_parameters['gcaatlas']
+    atlas = bem_parameters['atlas']
+    T1 = bem_parameters['T1']
+    show = bem_parameters['show']
+    overwrite = bem_parameters['overwrite']
 
-        :return: None
-        """
 
-        # Ensure the subjects_dir and subject are set correctly
+    make_watershed_bem(subject, subjects_dir=subjects_dir, overwrite=overwrite, volume=volume,
+                       atlas=atlas, gcaatlas=gcaatlas, show=show, T1=T1, preflood=preflood,
+                       brainmask=brain_mask, verbose=None)
 
-        if not os.path.isdir(subjects_dir):
-            raise ValueError(f'{subjects_dir} does not exist or is not a directory.')
 
-        bem_dir_path = os.path.join(subjects_dir, subject, "bem")
-        os.makedirs(bem_dir_path, exist_ok=True)
 
-        bem_surfaces_path = os.path.join(bem_dir_path, f"{subject}-inner_skull-bem.fif")
-        bem_model_path = os.path.join(bem_dir_path, f"{subject}-bem-sol.fif")
-        src_path = os.path.join(bem_dir_path, f"{subject}-src.fif")
+def make_head(subjects_dir, subject, head_parameters, source_parameters, overwrite=False, n_jobs=None):
 
-        # Create the BEM surfaces
+    """
+    Generates the necessary BEM (Boundary Element Method) model, surfaces, and source space files
+    for a given subject. Ensures proper setup of the directory structure and writes the results to
+    appropriate files.
 
-        ico = head_parameters["ico"]
-        conductivity = head_parameters["conductivity"]
+    This function uses the subjects directory and subject ID to create and store BEM surfaces, BEM
+    solutions, and source spaces essential for EEG/MEG data analysis pipelines.
 
-        bem_surfaces = mne.make_bem_model(subject=subject, subjects_dir=subjects_dir, ico=ico,
-                                          conductivity=conductivity)
+    :param subjects_dir: Path to the FreeSurfer subjects directory containing anatomical data.
+                         The directory must exist and contain the subject's folder.
+    :type subjects_dir: str
+    :param subject: Identifier for the subject. This should correspond to the folder name in
+                    the subjects directory.
+    :type subject: str
+    :param head_parameters: Dictionary containing parameters for building the BEM model.
+                            Keys include:
+                            - "ico": Icosahedron subdivision level for the surface mesh.
+                            - "conductivity": Conductivity values for the tissue layers.
+    :type head_parameters: dict
+    :param source_parameters: Dictionary containing parameters for setting up the source space.
+                              Key:
+                              - "source spacing": Defines the source spacing
+    :type source_parameters: dict
+    :param overwrite: Whether to overwrite existing files in the subject directory. Defaults to False.
+    :type overwrite: bool, optional
 
+    :param n_jobs: Number of parallel jobs to use for computations. If None, defaults to the number
+                   of CPUs in the machine.
+    :type n_jobs: int, optional
 
-        mne.write_bem_surfaces(bem_surfaces_path, bem_surfaces, overwrite=overwrite)
+    :return: None
+    """
 
-        # Create the BEM model
+    # Ensure the subjects_dir and subject are set correctly
 
-        bem_model = mne.make_bem_solution(bem_surfaces)
+    if not os.path.isdir(subjects_dir):
+        raise ValueError(f'{subjects_dir} does not exist or is not a directory.')
 
-        mne.write_bem_solution(bem_model_path, bem_model, overwrite=overwrite)
+    bem_dir_path = os.path.join(subjects_dir, subject, "bem")
+    os.makedirs(bem_dir_path, exist_ok=True)
 
-        # Create the source space
+    bem_surfaces_path = os.path.join(bem_dir_path, f"{subject}-inner_skull-bem.fif")
+    bem_model_path = os.path.join(bem_dir_path, f"{subject}-bem-sol.fif")
+    src_path = os.path.join(bem_dir_path, f"{subject}-src.fif")
 
-        source_spacing = source_parameters['source_spacing']
+    # Create the BEM surfaces
 
-        src = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=source_spacing, add_dist=False,
-                                     n_jobs=n_jobs)
+    ico = head_parameters["ico"]
+    conductivity = head_parameters["conductivity"]
 
-        mne.write_source_spaces(src_path, src, overwrite=overwrite)
+    bem_surfaces = mne.make_bem_model(subject=subject, subjects_dir=subjects_dir, ico=ico,
+                                      conductivity=conductivity)
 
 
-    def make_forward(subjects_dir, subject, measurement, overwrite=False, n_jobs=None):
+    mne.write_bem_surfaces(bem_surfaces_path, bem_surfaces, overwrite=overwrite)
 
-        """
-        Create and save a forward solution for MEG/EEG source analysis.
+    # Create the BEM model
 
-        The function constructs a forward solution using a provided subject’s anatomical,
-        surface, and measurement data. It reads necessary BEM, source space, info, and
-        transformation files, computes the forward solution, and saves it to the specified path.
+    bem_model = mne.make_bem_solution(bem_surfaces)
 
-        :param subjects_dir: Path to the subjects directory that contains all subject data.
-        :type subjects_dir: str
+    mne.write_bem_solution(bem_model_path, bem_model, overwrite=overwrite)
 
-        :param subject: Name of the subject whose data will be processed.
-        :type subject: str
+    # Create the source space
 
-        :param measurement: Measurement folder that contains the required info data.
-        :type measurement: str
+    source_spacing = source_parameters['source_spacing']
 
-        :param overwrite: Whether to overwrite an existing forward solution file. Default is False.
-        :type overwrite: bool
+    src = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=source_spacing, add_dist=False,
+                                 n_jobs=n_jobs)
 
-        :param n_jobs: Number of parallel jobs to use for computation. Default is None.
-        :type n_jobs: int, optional
+    mne.write_source_spaces(src_path, src, overwrite=overwrite)
 
-        :return: None
-        :raises CustomError: Raised at various points if required files or directories are not found.
-        """
 
-        bem_path = str(os.path.join(subjects_dir, subject, 'bem'))
+def make_forward(subjects_dir, subject, measurement, overwrite=False, n_jobs=None):
 
-        if not os.path.exists(bem_path):
-            raise CustomError('There is no bem')
-        else:
-            bem = mne.read_bem_solution(os.path.join(bem_path, 'bem_model', 'bem_model.fif'))
+    """
+    Create and save a forward solution for MEG/EEG source analysis.
 
-        src_path = os.path.join(subjects_dir, subject, 'src')
+    The function constructs a forward solution using a provided subject’s anatomical,
+    surface, and measurement data. It reads necessary BEM, source space, info, and
+    transformation files, computes the forward solution, and saves it to the specified path.
 
-        if not os.path.exists(src_path):
-            raise CustomError('There is no source')
-        else:
-            src = mne.read_source_spaces(os.path.join(subjects_dir, subject, 'src', 'src.fif'))
+    :param subjects_dir: Path to the subjects directory that contains all subject data.
+    :type subjects_dir: str
 
-        info_path = os.path.join(subjects_dir, subject, measurement_group, 'info', 'info.fif')
+    :param subject: Name of the subject whose data will be processed.
+    :type subject: str
 
-        if not os.path.exists(info_path):
-            raise CustomError('There is no info')
-        else:
-            info = mne.read_info('info.fif')
+    :param measurement: Measurement folder that contains the required info data.
+    :type measurement: str
 
-        trans_path = os.path.join(subjects_dir, subject, 'trans', 'trans.fif')
+    :param overwrite: Whether to overwrite an existing forward solution file. Default is False.
+    :type overwrite: bool
 
-        if not os.path.exists(trans_path):
-            raise CustomError('There is no info')
-        else:
-            trans = mne.read_info('trans_path')
+    :param n_jobs: Number of parallel jobs to use for computation. Default is None.
+    :type n_jobs: int, optional
 
-        forward_path = os.path.join(subjects_dir, subject, measurement_group, 'forward', 'forward.fif')
+    :return: None
+    :raises CustomError: Raised at various points if required files or directories are not found.
+    """
 
-        fwd = mne.make_forward_solution(info=info, trans=trans, src=src, bem=bem, n_jobs=n_jobs)
+    bem_path = str(os.path.join(subjects_dir, subject, 'bem'))
 
-        fwd.save(forward_path, overwrite=overwrite)
+    if not os.path.exists(bem_path):
+        raise CustomError('There is no bem')
+    else:
+        bem = mne.read_bem_solution(os.path.join(bem_path, 'bem_model', 'bem_model.fif'))
 
+    src_path = os.path.join(subjects_dir, subject, 'src')
 
+    if not os.path.exists(src_path):
+        raise CustomError('There is no source')
+    else:
+        src = mne.read_source_spaces(os.path.join(subjects_dir, subject, 'src', 'src.fif'))
 
-    def make_inverse(subjects_dir, subject, measurement_parameters, inverse_parameters, overwrite=False, n_jobs=None):
+    info_path = os.path.join(subjects_dir, subject, measurement_group, 'info', 'info.fif')
 
-        """
-        Generate and apply the inverse operator to M/EEG data for a given subject.
+    if not os.path.exists(info_path):
+        raise CustomError('There is no info')
+    else:
+        info = mne.read_info('info.fif')
 
-        This function generates an inverse operator using provided MNE environment data, and
-        applies it to the averaged raw M/EEG data of a given subject. The resulting source-level
-        data (stc) is subsequently saved into a specified directory. The function requires proper
-        measurement configurations and may leverage parallel processing via n_jobs.
+    trans_path = os.path.join(subjects_dir, subject, 'trans', 'trans.fif')
 
-        :param subjects_dir: Path to the directory containing subject subdirectories.
-        :type subjects_dir: str
+    if not os.path.exists(trans_path):
+        raise CustomError('There is no info')
+    else:
+        trans = mne.read_info('trans_path')
 
-        :param subject: The subject identifier corresponding to the directory in `subjects_dir`.
-        :type subject: str
+    forward_path = os.path.join(subjects_dir, subject, measurement_group, 'forward', 'forward.fif')
 
-        :param measurement_parameters: A dictionary containing keys such as 'measurement'
-            and 'measurement_group', which define the measurement type and its associated
-            group, respectively.
-        :type measurement_parameters: dict
+    fwd = mne.make_forward_solution(info=info, trans=trans, src=src, bem=bem, n_jobs=n_jobs)
 
-        :param overwrite: Flag indicating whether to overwrite existing files when saving
-            the resulting source-level data.
-        :type overwrite: bool, optional
+    fwd.save(forward_path, overwrite=overwrite)
 
-        :param n_jobs: Number of parallel jobs to use in processing. If None, all available
-            CPUs are used.
-        :type n_jobs: int, optional
 
-        :return: None
-        """
 
-        fixed = inverse_parameters['fixed']
-        depth = inverse_parameters['depth']
-        lambda2 = inverse_parameters['lambda2']
-        pick_ori = inverse_parameters['pick_ori']
+def make_inverse(subjects_dir, subject, measurement_parameters, inverse_parameters, overwrite=False, n_jobs=None):
 
+    """
+    Generate and apply the inverse operator to M/EEG data for a given subject.
 
-        # Read the averaged raw data
+    This function generates an inverse operator using provided MNE environment data, and
+    applies it to the averaged raw M/EEG data of a given subject. The resulting source-level
+    data (stc) is subsequently saved into a specified directory. The function requires proper
+    measurement configurations and may leverage parallel processing via n_jobs.
 
-        measurement = measurement_parameters['measurement']
-        measurement_group = measurement_parameters['measurement_group']
+    :param subjects_dir: Path to the directory containing subject subdirectories.
+    :type subjects_dir: str
 
-        raw_path = os.path.join(subjects_dir, subject, measurement_group, measurement)
-        info_path = os.path.join(subjects_dir, subject, measurement_group, 'info.fif')
+    :param subject: The subject identifier corresponding to the directory in `subjects_dir`.
+    :type subject: str
 
-        if not os.path.exists(raw_path):
-            raise FileNotFoundError(f"Raw data file not found: {raw_path}")
+    :param measurement_parameters: A dictionary containing keys such as 'measurement'
+        and 'measurement_group', which define the measurement type and its associated
+        group, respectively.
+    :type measurement_parameters: dict
 
-        raw = mne.io.read_raw_fif(raw_path, preload=True)
-        info = mne.io.read_info(info_path)
+    :param overwrite: Flag indicating whether to overwrite existing files when saving
+        the resulting source-level data.
+    :type overwrite: bool, optional
 
-        print(info)
+    :param n_jobs: Number of parallel jobs to use in processing. If None, all available
+        CPUs are used.
+    :type n_jobs: int, optional
 
+    :return: None
+    """
 
-        # Read the forward solution from file
-        forward_path = os.path.join(subjects_dir, subject, measurement_group, 'forward', 'forward.fif')
-       
-        if not os.path.exists(forward_path):
-            raise FileNotFoundError(f"Forward solution file not found: {forward_path}")
-        
-        fwd = mne.read_forward_solution(forward_path)
+    fixed = inverse_parameters['fixed']
+    depth = inverse_parameters['depth']
+    lambda2 = inverse_parameters['lambda2']
+    pick_ori = inverse_parameters['pick_ori']
 
-        
-        # Read the noise covariance matrix from file
-        
-        noise_cov_path = os.path.join(subjects_dir, subject, measurement_group, 'cov', 'noise-cov.fif')
 
-        if not os.path.exists(noise_cov_path):
-            raise FileNotFoundError(f"Noise covariance file not found: {noise_cov_path}")
+    # Read the averaged raw data
 
-        noise_cov = mne.read_cov(noise_cov_path)
-        
+    measurement = measurement_parameters['measurement']
+    measurement_group = measurement_parameters['measurement_group']
 
-        inverse_operator = mne.minimum_norm.make_inverse_operator(info=info, forward=fwd, noise_cov=noise_cov,
-                                                                  fixed=fixed, depth=depth)
+    raw_path = os.path.join(subjects_dir, subject, measurement_group, measurement)
+    info_path = os.path.join(subjects_dir, subject, measurement_group, 'info.fif')
 
-        stc = mne.minimum_norm.apply_inverse_raw(raw=raw, inverse_operator=inverse_operator, lambda2=lambda2,
-                                                 method=inverse_method, pick_ori=pick_ori, n_jobs=n_jobs)
+    if not os.path.exists(raw_path):
+        raise FileNotFoundError(f"Raw data file not found: {raw_path}")
 
+    raw = mne.io.read_raw_fif(raw_path, preload=True)
+    info = mne.io.read_info(info_path)
 
-        # Save the inverse operator to a file
-        inverse_operator_path = os.path.join(subjects_dir, subject, 'inverse_operators',
-                                             f"{measurement}-inverse-operator.fif")
+    print(info)
 
-        # Create directory if it doesn't exist
-        os.makedirs(os.path.dirname(inverse_operator_path), exist_ok=True)
 
-        mne.minimum_norm.write_inverse_operator(inverse_operator_path, inverse_operator, overwrite=overwrite)
+    # Read the forward solution from file
+    forward_path = os.path.join(subjects_dir, subject, measurement_group, 'forward', 'forward.fif')
 
+    if not os.path.exists(forward_path):
+        raise FileNotFoundError(f"Forward solution file not found: {forward_path}")
 
-        # Save the stc file
+    fwd = mne.read_forward_solution(forward_path)
 
-        stc.save(os.path.join(subjects_dir, subject, 'stc_results', f"{measurement}-stc"), overwrite=overwrite)
+
+    # Read the noise covariance matrix from file
+
+    noise_cov_path = os.path.join(subjects_dir, subject, measurement_group, 'cov', 'noise-cov.fif')
+
+    if not os.path.exists(noise_cov_path):
+        raise FileNotFoundError(f"Noise covariance file not found: {noise_cov_path}")
+
+    noise_cov = mne.read_cov(noise_cov_path)
+
+
+    inverse_operator = mne.minimum_norm.make_inverse_operator(info=info, forward=fwd, noise_cov=noise_cov,
+                                                              fixed=fixed, depth=depth)
+
+    stc = mne.minimum_norm.apply_inverse_raw(raw=raw, inverse_operator=inverse_operator, lambda2=lambda2,
+                                             method=inverse_method, pick_ori=pick_ori, n_jobs=n_jobs)
+
+
+    # Save the inverse operator to a file
+    inverse_operator_path = os.path.join(subjects_dir, subject, 'inverse_operators',
+                                         f"{measurement}-inverse-operator.fif")
+
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(inverse_operator_path), exist_ok=True)
+
+    mne.minimum_norm.write_inverse_operator(inverse_operator_path, inverse_operator, overwrite=overwrite)
+
+
+    # Save the stc file
+
+    stc.save(os.path.join(subjects_dir, subject, 'stc_results', f"{measurement}-stc"), overwrite=overwrite)
