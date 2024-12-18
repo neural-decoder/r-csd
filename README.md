@@ -31,7 +31,7 @@ Stages of CSD reconstruction:
 everything in a script r_csd_pipeline
 
 
-data orgazization
+data organization
 ------------------------------------
 we will follow BIDS standards
 
