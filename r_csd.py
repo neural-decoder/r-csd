@@ -10,6 +10,7 @@ def make_bem(subjects_dir, subject, bem_parameters):
 
     """
     Generate a BEM (Boundary Element Model) for a subject using watershed algorithm.
+    Produces triangulated surfaces that represent the interfaces between different tissues.
 
     This function leverages the MNE library to create a BEM structure using the
     watershed algorithm. It requires specific parameters provided in the
@@ -23,6 +24,8 @@ def make_bem(subjects_dir, subject, bem_parameters):
         'atlas', and 'T1'.
     :param overwrite: If True, overwrite any pre-existing BEM data. Defaults to False.
     :return: None
+
+
     """
 
     preflood = bem_parameters['preflood']
@@ -35,13 +38,23 @@ def make_bem(subjects_dir, subject, bem_parameters):
     overwrite = bem_parameters['overwrite']
 
 
-    mne.bem.make_watershed_bem(subject, subjects_dir=subjects_dir, overwrite=overwrite, volume=volume,
-                               atlas=atlas, gcaatlas=gcaatlas, show=show, T1=T1, preflood=preflood,
-                               brainmask=brain_mask, verbose=None)
+    # Check if watershed directory exists
+
+    bem_dir = os.path.join(subjects_dir, subject, "bem", "watershed")
+    if os.path.exists(bem_dir) and not overwrite:
+        print(f"Watershed BEM already exists for subject: {subject}. Skipping BEM creation.")
+        return
+
+
+    from mne.bem import make_watershed_bem
+
+    make_watershed_bem(subject, subjects_dir=subjects_dir, overwrite=overwrite, volume=volume,
+                       atlas=atlas, gcaatlas=gcaatlas, show=show, T1=T1, preflood=preflood,
+                       brainmask=brain_mask, verbose=None)
 
 
 
-def make_head(subjects_dir, subject, head_parameters, source_parameters, overwrite=False, n_jobs=None):
+def make_head(subjects_dir, subject, head_parameters, n_jobs):
 
     """
     Generates the necessary BEM (Boundary Element Method) model, surfaces, and source space files
@@ -76,28 +89,52 @@ def make_head(subjects_dir, subject, head_parameters, source_parameters, overwri
     :return: None
     """
 
+    # Create the necessary directories
+
     bem_dir_path = os.path.join(subjects_dir, subject, "bem")
     os.makedirs(bem_dir_path, exist_ok=True)
+
+
+    # Define file paths
 
     bem_surfaces_path = os.path.join(bem_dir_path, f"{subject}-inner_skull-bem.fif")
     bem_model_path = os.path.join(bem_dir_path, f"{subject}-bem-sol.fif")
 
-    # Create the BEM surfaces
+    # Extract parameters
 
     ico = head_parameters["ico"]
     conductivity = head_parameters["conductivity"]
+    overwrite = head_parameters.get("overwrite", False)  # Default to False if not provided
 
-    bem_surfaces = mne.make_bem_model(subject=subject, subjects_dir=subjects_dir, ico=ico,
-                                      conductivity=conductivity)
+    # Check if the BEM surface file already exists
+
+    if os.path.exists(bem_surfaces_path) and not overwrite:
+        print(f"BEM surfaces file {bem_surfaces_path} already exists. Skipping creation.")
+
+    else:
+
+        # Create the BEM surfaces
+
+        bem_surfaces = mne.make_bem_model(subject=subject, subjects_dir=subjects_dir, ico=ico,
+                                          conductivity=conductivity)
+        mne.write_bem_surfaces(bem_surfaces_path, bem_surfaces, overwrite=overwrite)
+        print(f"BEM surfaces written to {bem_surfaces_path}.")
 
 
-    mne.write_bem_surfaces(bem_surfaces_path, bem_surfaces, overwrite=overwrite)
+    # Check if the BEM solution file already exists
 
-    # Create the BEM model
+    if os.path.exists(bem_model_path) and not overwrite:
+        print(f"BEM model file {bem_model_path} already exists. Skipping creation.")
+    else:
 
-    bem_model = mne.make_bem_solution(bem_surfaces)
+        # Create the BEM model
 
-    mne.write_bem_solution(bem_model_path, bem_model, overwrite=overwrite)
+        bem_model = mne.make_bem_solution(bem_surfaces)
+        mne.write_bem_solution(bem_model_path, bem_model, overwrite=overwrite)
+        print(f"BEM solution written to {bem_model_path}.")
+
+
+
 
 
 
@@ -106,6 +143,7 @@ def make_source(subjects_dir, subject, source_parameters, n_jobs=None):
     src_path = os.path.join(bem_dir_path, f"{subject}-src.fif")
 
     source_spacing = source_parameters['source_spacing']
+    overwrite = source_parameters['overwrite']
 
     src = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=source_spacing, add_dist=False,
                                  n_jobs=n_jobs)
@@ -115,7 +153,7 @@ def make_source(subjects_dir, subject, source_parameters, n_jobs=None):
 
 
 
-def make_forward(subjects_dir, subject, measurement, overwrite=False, n_jobs=None):
+def make_forward(subjects_dir, subject, info, overwrite=False, n_jobs=None):
 
     """
     Create and save a forward solution for MEG/EEG source analysis.

@@ -9,6 +9,8 @@
 import r_csd
 import joblib
 
+
+
 """
 GENERAL PARAMETERS
 
@@ -21,8 +23,8 @@ unless the call is performed under a joblib.parallel_config context manager that
 # """
 
 
-subjects_dir = '/media/white/EXT_4T/DATA/LAB/resting'
-subject = 'sub-B9T21173'
+subjects_dir = '/media/white/EXT_4T1/DATA/LAB/resting'
+subject = 'sub-K2C68132'
 
 n_jobs = None
 
@@ -52,36 +54,85 @@ bem_parameters['gcaatlas'] = False
 bem_parameters['atlas'] = False
 bem_parameters['T1'] = None
 bem_parameters['show'] = True
-bem_parameters['overwrite'] = True
+bem_parameters['overwrite'] = False
 
 
 r_csd.make_bem(subjects_dir, subject, bem_parameters)
 
 
 
-# """
-# STAGE 2 : MAKE HEAD MODEL
+"""
+STAGE 2 : MAKE HEAD MODEL
+
+ico : None / int
+The surface mesh is subdivided into icohedrons.
+The surface ico downsampling to use, e.g. 5=20484, 4=5120, 3=1280. 
+If None, no subsampling is applied.
+
+conductivity : float / array of floats
+default : [0.3, 0.006, 0.3]
+The conductivity values for the tissue layers.
+The conductivities to use for each shell.
+
+3 Layers model
+Scalp Layer:
+The outermost layer, representing the scalp,
+typically has a conductivity value around 0.3 Sm
+Skull Layer:
+The middle layer, which represents the skull, 
+has a significantly lower conductivity.
+This low conductivity is essential as it models 
+the attenuating effect of the skull on electrical signals.
+Brain Layer:
+The innermost layer corresponds to the brain tissue, with a higher conductivity value around 0.3 Sm
+0.33S m, similar to that of the scalp.
+
+Should be a single element for a one-layer model, or three elements for a three-layer model.
+Defaults to [0.3, 0.006, 0.3]. The MNE-C default for a single-layer model is [0.3]
+
+
+"""
+
+head_parameters = {}
+head_parameters['ico'] = 4
+head_parameters['conductivity'] = [0.3, 0.006, 0.3]
+head_parameters['overwrite'] = False
+
+
+r_csd.make_head(subjects_dir, subject, head_parameters, n_jobs=n_jobs)
+
+
+"""
+STAGE 3 : MAKE SOURCE SPACE
+
+spacing : str
+The spacing to use. Can be 
+'ico#' for a recursively subdivided icosahedron,
+'oct#' for a recursively subdivided octahedron, 
+'all' for all points, or an integer to use approximate distance-based spacing (in mm).
+
+
+"""
 #
-# """
-#
-# r_csd.make_head(subjects_dir, subject, head_parameters, source_parameters, n_jobs=n_jobs)
-#
-#
-# """
-# STAGE 3 : MAKE SOURCE SPACE
-#
-# """
+# source_parameters = {}
+# source_parameters['source_spacing'] = 'oct6'
+# source_parameters['overwrite'] = False
 #
 #
 # r_csd.make_source(subjects_dir, subject, source_parameters, n_jobs=n_jobs)
-#
-#
-#
-# """
-# STAGE 4 : MAKE FORWARD SOLUTION
-#
-# """
-#
+
+
+
+"""
+STAGE 4 : MAKE FORWARD SOLUTION
+
+"""
+
+
+
+
+
+
 #
 # """
 # STAGE 5 : MAKE INVERSE SOLUTION
