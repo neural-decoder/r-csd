@@ -29,6 +29,7 @@ subject = 'sub-K2C68132'
 n_jobs = None
 
 
+eeg_recording = 'task-rest_eeg'
 
 
 """
@@ -113,13 +114,25 @@ The spacing to use. Can be
 
 
 """
-#
-# source_parameters = {}
-# source_parameters['source_spacing'] = 'oct6'
-# source_parameters['overwrite'] = False
-#
-#
-# r_csd.make_source(subjects_dir, subject, source_parameters, n_jobs=n_jobs)
+
+source_parameters = {}
+source_parameters['source_spacing'] = 'oct6'
+source_parameters['overwrite'] = False
+
+
+r_csd.make_source(subjects_dir, subject, source_parameters, n_jobs=n_jobs)
+
+
+
+
+"""
+STAGE 4 : MAKE INFO
+
+"""
+
+eeg_fname = f'{subject}_{eeg_recording}'
+
+r_csd.make_info(subjects_dir, subject, eeg_fname, overwrite=False)
 
 
 
@@ -128,6 +141,7 @@ STAGE 4 : MAKE FORWARD SOLUTION
 
 """
 
+r_csd.make_forward(subjects_dir, subject, info, overwrite=False, n_jobs=n_jobs)
 
 
 

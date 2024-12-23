@@ -137,10 +137,9 @@ def make_head(subjects_dir, subject, head_parameters, n_jobs):
 
 
 
-
 def make_source(subjects_dir, subject, source_parameters, n_jobs=None):
 
-    src_path = os.path.join(bem_dir_path, f"{subject}-src.fif")
+    src_path = os.path.join(subjects_dir, subject, 'src', f"{subject}-src.fif")
 
     source_spacing = source_parameters['source_spacing']
     overwrite = source_parameters['overwrite']
@@ -153,7 +152,26 @@ def make_source(subjects_dir, subject, source_parameters, n_jobs=None):
 
 
 
-def make_forward(subjects_dir, subject, info, overwrite=False, n_jobs=None):
+def make_info(subjects_dir, subject, eeg_filename, overwrite=False):
+
+    raw_path = os.path.join(subjects_dir, subject, '_eeg', eeg_filename)
+
+    info_filepath = os.path.join(subjects_dir, subject, '_eeg', 'info.fif')
+
+    raw = mne.io.read_raw_brainvision(f"{raw_path}.vhdr", eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto', scale=1.0,
+                                      ignore_marker_types=False, preload=False, verbose=None)
+    print(raw.info)
+
+    # Save the info to a .fif file
+
+    mne.io.write_info(info_filepath, raw.info)
+
+    print(f"Info saved to {info_filepath}")
+
+
+
+
+def make_forward(subjects_dir, subject, eeg_recording, overwrite=False, n_jobs=None):
 
     """
     Create and save a forward solution for MEG/EEG source analysis.
@@ -168,7 +186,7 @@ def make_forward(subjects_dir, subject, info, overwrite=False, n_jobs=None):
     :param subject: Name of the subject whose data will be processed.
     :type subject: str
 
-    :param measurement: Measurement folder that contains the required info data.
+    :param eeg_recording: eeg_recording folder that contains the required info data.
     :type measurement: str
 
     :param overwrite: Whether to overwrite an existing forward solution file. Default is False.
@@ -195,7 +213,7 @@ def make_forward(subjects_dir, subject, info, overwrite=False, n_jobs=None):
     else:
         src = mne.read_source_spaces(os.path.join(subjects_dir, subject, 'src', 'src.fif'))
 
-    info_path = os.path.join(subjects_dir, subject, measurement_group, 'info', 'info.fif')
+    info_path = os.path.join(subjects_dir, subject, '_eeg', 'info.fif')
 
     if not os.path.exists(info_path):
         raise CustomError('There is no info')
