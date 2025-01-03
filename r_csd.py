@@ -144,6 +144,11 @@ def make_source(subjects_dir, subject, source_parameters, n_jobs=None):
     source_spacing = source_parameters['source_spacing']
     overwrite = source_parameters['overwrite']
 
+    # Check if source file already exists and handle overwrite behavior
+    if os.path.exists(src_path) and not overwrite:
+        print(f"Source file already exists at {src_path}. Use 'overwrite=True' to overwrite it.")
+        return  # Exit gracefully without overwriting
+
     src = mne.setup_source_space(subject=subject, subjects_dir=subjects_dir, spacing=source_spacing, add_dist=False,
                                  n_jobs=n_jobs)
 
@@ -152,26 +157,44 @@ def make_source(subjects_dir, subject, source_parameters, n_jobs=None):
 
 
 
-def make_info(subjects_dir, subject, eeg_filename, overwrite=False):
+def make_info(subjects_dir, subject, eeg_filename, montage_dir, overwrite=False):
 
     raw_path = os.path.join(subjects_dir, subject, '_eeg', eeg_filename)
 
     info_filepath = os.path.join(subjects_dir, subject, '_eeg', 'info.fif')
 
+
+    montage = mne.channels.read_dig_captrak(montage_dir)
+
+    print(montage)
+    print(montage.get_positions()['nasion'])
+    print(montage.get_positions()['lpa'])
+    print(montage.get_positions()['rpa'])
+
+
     raw = mne.io.read_raw_brainvision(f"{raw_path}.vhdr", eog=('HEOGL', 'HEOGR', 'VEOGb'), misc='auto', scale=1.0,
                                       ignore_marker_types=False, preload=False, verbose=None)
-    print(raw.info)
+
+    raw.set_montage(montage, on_missing='ignore')
+
+    info = raw.info
+
+    print(info)
+
+    print(info['dig'])
 
     # Save the info to a .fif file
 
-    mne.io.write_info(info_filepath, raw.info)
+    mne.io.write_info(info_filepath, info)
+
+
 
     print(f"Info saved to {info_filepath}")
 
 
 
 
-def make_forward(subjects_dir, subject, eeg_recording, overwrite=False, n_jobs=None):
+def make_forward(subjects_dir, subject, overwrite=False, n_jobs=None):
 
     """
     Create and save a forward solution for MEG/EEG source analysis.
@@ -204,30 +227,30 @@ def make_forward(subjects_dir, subject, eeg_recording, overwrite=False, n_jobs=N
     if not os.path.exists(bem_path):
         raise CustomError('There is no bem')
     else:
-        bem = mne.read_bem_solution(os.path.join(bem_path, 'bem_model', 'bem_model.fif'))
+        bem = mne.read_bem_solution(os.path.join(bem_path, f'{subject}-bem-sol.fif'))
 
     src_path = os.path.join(subjects_dir, subject, 'src')
 
     if not os.path.exists(src_path):
         raise CustomError('There is no source')
     else:
-        src = mne.read_source_spaces(os.path.join(subjects_dir, subject, 'src', 'src.fif'))
+        src = mne.read_source_spaces(os.path.join(subjects_dir, subject, 'src', f'{subject}-src.fif'))
 
     info_path = os.path.join(subjects_dir, subject, '_eeg', 'info.fif')
 
     if not os.path.exists(info_path):
         raise CustomError('There is no info')
     else:
-        info = mne.read_info('info.fif')
+        info = mne.io.read_info(os.path.join(subjects_dir, subject, '_eeg', 'info.fif'))
 
     trans_path = os.path.join(subjects_dir, subject, 'trans', 'trans.fif')
 
     if not os.path.exists(trans_path):
         raise CustomError('There is no info')
     else:
-        trans = mne.read_info('trans_path')
+        trans = mne.read_trans(trans_path)
 
-    forward_path = os.path.join(subjects_dir, subject, measurement_group, 'forward', 'forward.fif')
+    forward_path = os.path.join(subjects_dir, subject, '_eeg', 'forward', 'forward.fif')
 
     fwd = mne.make_forward_solution(info=info, trans=trans, src=src, bem=bem, n_jobs=n_jobs)
 

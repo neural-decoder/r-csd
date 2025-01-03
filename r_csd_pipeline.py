@@ -9,6 +9,8 @@
 import r_csd
 import joblib
 
+import mne
+import pyvista
 
 
 """
@@ -124,15 +126,16 @@ r_csd.make_source(subjects_dir, subject, source_parameters, n_jobs=n_jobs)
 
 
 
-
 """
 STAGE 4 : MAKE INFO
 
 """
 
+montage_fname = '/media/white/EXT_4T1/DATA/LAB/resting/sub-K2C68132/_eeg/montage/coords/sub-K2C68132_captrak.bvct'
+
 eeg_fname = f'{subject}_{eeg_recording}'
 
-r_csd.make_info(subjects_dir, subject, eeg_fname, overwrite=False)
+r_csd.make_info(subjects_dir, subject, eeg_fname, montage_fname, overwrite=True)
 
 
 
@@ -141,16 +144,11 @@ STAGE 4 : MAKE FORWARD SOLUTION
 
 """
 
-r_csd.make_forward(subjects_dir, subject, info, overwrite=False, n_jobs=n_jobs)
+r_csd.make_forward(subjects_dir, subject, overwrite=False, n_jobs=n_jobs)
 
 
 
 
-
-#
-# """
-# STAGE 5 : MAKE INVERSE SOLUTION
-# """
 
 
 
